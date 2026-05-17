@@ -52,6 +52,7 @@
     // SOCKETIO CONNECTION
     // ============================================================
     const socket = io();
+    window.socket = socket;  // Make socket globally available for HexStrike
 
     socket.on('connect', () => {
         console.log('[MYTHOS] Connected to server');
@@ -787,19 +788,19 @@ const HexStrike = {
 
     init() {
         // SocketIO events
-        socket.on("hexstrike_health_result", (data) => {
+        window.socket.on("hexstrike_health_result", (data) => {
             this.updateStatus(data);
         });
-        socket.on("hexstrike_tool_result", (data) => {
+        window.socket.on("hexstrike_tool_result", (data) => {
             this.appendOutput(data);
         });
-        socket.on("hexstrike_scan_result", (data) => {
+        window.socket.on("hexstrike_scan_result", (data) => {
             this.appendOutput(data);
         });
-        socket.on("hexstrike_bugbounty_result", (data) => {
+        window.socket.on("hexstrike_bugbounty_result", (data) => {
             this.appendOutput(data);
         });
-        socket.on("hexstrike_intel_result", (data) => {
+        window.socket.on("hexstrike_intel_result", (data) => {
             this.appendOutput(data);
         });
 
@@ -819,7 +820,7 @@ const HexStrike = {
     },
 
     checkHealth() {
-        socket.emit("hexstrike_health");
+        window.socket.emit("hexstrike_health");
         fetch("/api/hexstrike/status")
             .then(r => r.json())
             .then(data => {
@@ -910,7 +911,7 @@ const HexStrike = {
             try { options = JSON.parse(optionsStr); } catch(e) { options = {extra: optionsStr}; }
         }
         this.appendOutput({system: `Running ${tool} -> ${target}...`});
-        socket.emit("hexstrike_run_tool", {tool, target, options});
+        window.socket.emit("hexstrike_run_tool", {tool, target, options});
     },
 
     quickAction(action) {
@@ -923,12 +924,12 @@ const HexStrike = {
         if (["analyze","smart_scan","tech_detect","tools_select"].includes(action)) {
             const type = action === "smart_scan" ? "smart_scan" : action;
             if (action === "smart_scan") {
-                socket.emit("hexstrike_smart_scan", {target, objective: "comprehensive"});
+                window.socket.emit("hexstrike_smart_scan", {target, objective: "comprehensive"});
             } else {
-                socket.emit("hexstrike_intelligence", {target, type: action});
+                window.socket.emit("hexstrike_intelligence", {target, type: action});
             }
         } else {
-            socket.emit("hexstrike_bugbounty", {target, workflow: action});
+            window.socket.emit("hexstrike_bugbounty", {target, workflow: action});
         }
         this.appendOutput({system: `Quick action: ${action} -> ${target}...`});
     },
@@ -958,4 +959,9 @@ const HexStrike = {
         document.getElementById("hsOutput").innerHTML = "<div class=\"terminal-line system\">Output cleared</div>";
     }
 };
-HexStrike.init();
+// Initialize HexStrike after DOM and SocketIO are ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(() => HexStrike.init(), 500));
+} else {
+    setTimeout(() => HexStrike.init(), 500);
+}
