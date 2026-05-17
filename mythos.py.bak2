@@ -2840,30 +2840,15 @@ def handle_ip_quick_lookup(data):
 @socketio.on("hexstrike_health")
 def hexstrike_health():
     try:
-        health = hexstrike.get_health() if hexstrike.is_available() else None
-        available = hexstrike.is_available()
-    except Exception:
-        health = None
-        available = False
-    try:
+        health = hexstrike.get_health()
         emit("hexstrike_health_result", {
-            "available": True,
-            "status": "online" if available else "standby",
+            "available": hexstrike.is_available(),
             "health": health,
             "tools": hexstrike.get_all_tool_names(),
-            "categories": hexstrike.TOOL_CATEGORIES,
-            "total_tools": len(hexstrike.get_all_tool_names()),
-            "version": health.get("version", "6.0") if health else "6.0"
+            "categories": hexstrike.TOOL_CATEGORIES
         })
     except Exception as e:
-        emit("hexstrike_health_result", {
-            "available": True,
-            "status": "standby",
-            "tools": hexstrike.get_all_tool_names(),
-            "categories": hexstrike.TOOL_CATEGORIES,
-            "total_tools": len(hexstrike.get_all_tool_names()),
-            "error": str(e)
-        })
+        emit("hexstrike_health_result", {"available": False, "error": str(e)})
 
 @socketio.on("hexstrike_run_tool")
 def hexstrike_run_tool(data):
@@ -3136,27 +3121,14 @@ def print_banner():
 
 @app.route("/api/hexstrike/status")
 def api_hexstrike_status():
-    try:
-        health = hexstrike.get_health() if hexstrike.is_available() else None
-        available = hexstrike.is_available()
-    except Exception:
-        health = None
-        available = False
-    all_tools = hexstrike.get_all_tool_names()
-    tool_count = len(all_tools)
-    cat_count = len(hexstrike.TOOL_CATEGORIES)
+    health = hexstrike.get_health() if hexstrike.is_available() else None
     return jsonify({
-        "available": True,
-        "status": "online" if available else "standby",
+        "available": hexstrike.is_available(),
         "api_url": HEXSTRIKE_API,
         "started": hexstrike._started,
         "health": health,
-        "total_tools": tool_count,
-        "categories": cat_count,
-        "version": health.get("version", "6.0") if health else "6.0",
-        "engine": "HexStrike-AI v6.0",
-        "total_tools_available": health.get("total_tools_available", tool_count) if health else tool_count,
-        "total_tools_count": health.get("total_tools_count", tool_count) if health else tool_count
+        "total_tools": len(hexstrike.get_all_tool_names()),
+        "categories": len(hexstrike.TOOL_CATEGORIES)
     })
 
 @app.route("/api/hexstrike/tools")
@@ -3166,14 +3138,6 @@ def api_hexstrike_tools():
         "tool_endpoints": hexstrike.TOOL_ENDPOINTS,
         "all_tools": hexstrike.get_all_tool_names()
     })
-
-@app.route("/api/hexstrike/categories")
-def api_hexstrike_categories():
-    categories = hexstrike.TOOL_CATEGORIES
-    cat_list = []
-    for name, tools in categories.items():
-        cat_list.append({"name": name, "tool_count": len(tools), "tools": tools})
-    return jsonify({"categories": cat_list, "total": len(cat_list)})
 
 @app.route("/api/hexstrike/run", methods=["POST"])
 def api_hexstrike_run():
@@ -3193,20 +3157,8 @@ def api_hexstrike_proxy(endpoint):
     return jsonify(result or {"error": "HexStrike unavailable"})
 
 
-def kill_port_5000():
-    import subprocess as _sp
-    try:
-        r = _sp.run(['fuser', '5000/tcp'], capture_output=True, text=True, timeout=5)
-        if r.stdout.strip():
-            _sp.run(['fuser', '-k', '5000/tcp'], capture_output=True, timeout=5)
-            print("[MYTHOS] Killed stale process on port 5000")
-            import time as _t; _t.sleep(1)
-    except Exception:
-        pass
-
 def main():
     port = DEFAULT_PORT
-    kill_port_5000()
 
     # Parse args
     if len(sys.argv) > 1:

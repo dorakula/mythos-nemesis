@@ -458,8 +458,9 @@
             .then(r => r.json())
             .then(data => {
                 const el = document.getElementById('hexstrikeStatus');
-                if (data.available) {
-                    el.innerHTML = '<span class="status-dot online"></span><span>HexStrike: Online</span>';
+                if (data.available || data.status === 'standby') {
+                    const statusText = data.status === 'standby' ? 'Standby' : 'Online';
+                    el.innerHTML = '<span class="status-dot online"></span><span>HexStrike: ' + statusText + '</span>';
                 } else {
                     el.innerHTML = '<span class="status-dot offline"></span><span>HexStrike: Offline</span>';
                 }
@@ -824,7 +825,7 @@ const HexStrike = {
             .then(data => {
                 const badge = document.getElementById("hexstrikeBadge");
                 const statusEl = document.getElementById("hexstrikeStatus");
-                if (data.available) {
+                if (data.available || data.status === "standby") {
                     badge.textContent = "ONLINE";
                     badge.className = "badge badge-success";
                     if (statusEl) {
