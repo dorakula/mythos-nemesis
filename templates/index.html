@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MYTHOS NEMESIS — Anti-Gambling Intelligence</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+</head>
+<body>
+    <!-- Log Rain Canvas Background -->
+    <canvas id="logRainCanvas"></canvas>
+
+    <!-- CRT Scanline Overlay -->
+    <div id="scanlineOverlay"></div>
+
+    <!-- Main Layout -->
+    <div id="app">
+        <!-- Sidebar -->
+        <nav id="sidebar">
+            <div class="sidebar-brand">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+                <span>MYTHOS</span>
+            </div>
+
+            <ul class="sidebar-nav">
+                <li class="nav-item active" data-page="dashboard">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                    </svg>
+                    <span>Dashboard</span>
+                </li>
+                <li class="nav-item" data-page="scan">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <span>New Scan</span>
+                </li>
+                <li class="nav-item" data-page="intel">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                    </svg>
+                    <span>Intelligence</span>
+                </li>
+                <li class="nav-item" data-page="killchain">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <span>Kill Chain</span>
+                </li>
+                <li class="nav-item" data-page="blocklist">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                    </svg>
+                    <span>Blocklist</span>
+                </li>
+                <li class="nav-item" data-page="tools">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                    </svg>
+                    <span>Tools</span>
+                </li>
+                <li class="nav-item" data-page="logs">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+                    </svg>
+                    <span>Terminal</span>
+                </li>
+                <li class="nav-item" data-page="iptracker">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+                        <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
+                        <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
+                    </svg>
+                    <span>IP Tracker</span>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <div class="hexstrike-status" id="hexstrikeStatus">
+                    <span class="status-dot offline"></span>
+                    <span>HexStrike: Offline</span>
+                </div>
+                <div class="mcp-status">
+                    <span class="status-dot protected"></span>
+                    <span>MCP:8080 Protected</span>
+                </div>
+                <div class="version-info">v2.0 — Dorakula</div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main id="mainContent">
+            <!-- Dashboard Page -->
+            <section id="page-dashboard" class="page active">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <div class="header-actions">
+                        <span class="live-indicator">
+                            <span class="pulse"></span> LIVE
+                        </span>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card glass">
+                        <div class="stat-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                        </div>
+                        <div class="stat-value" id="statScans">0</div>
+                        <div class="stat-label">Total Scans</div>
+                    </div>
+                    <div class="stat-card glass">
+                        <div class="stat-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-value" id="statIntel">0</div>
+                        <div class="stat-label">Intel Points</div>
+                    </div>
+                    <div class="stat-card glass">
+                        <div class="stat-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                        </div>
+                        <div class="stat-value" id="statEvidence">0</div>
+                        <div class="stat-label">Evidence</div>
+                    </div>
+                    <div class="stat-card glass">
+                        <div class="stat-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                            </svg>
+                        </div>
+                        <div class="stat-value" id="statBlocked">0</div>
+                        <div class="stat-label">Blocked</div>
+                    </div>
+                </div>
+
+                <!-- 6-Layer Intelligence Overview -->
+                <div class="section-title">6-Layer Intelligence Classification</div>
+                <div class="layers-grid">
+                    <div class="layer-card glass" data-layer="L1_DOMAIN">
+                        <div class="layer-header">
+                            <span class="layer-icon">🌐</span>
+                            <span class="layer-name">L1 — Domain</span>
+                        </div>
+                        <div class="layer-desc">Registration, WHOIS, DNS Records</div>
+                        <div class="layer-count" id="layerL1">0</div>
+                    </div>
+                    <div class="layer-card glass" data-layer="L2_CONTENT">
+                        <div class="layer-header">
+                            <span class="layer-icon">📄</span>
+                            <span class="layer-name">L2 — Content</span>
+                        </div>
+                        <div class="layer-desc">Keywords, Payments, Redirects</div>
+                        <div class="layer-count" id="layerL2">0</div>
+                    </div>
+                    <div class="layer-card glass" data-layer="L3_INFRA">
+                        <div class="layer-header">
+                            <span class="layer-icon">🖥️</span>
+                            <span class="layer-name">L3 — Infrastructure</span>
+                        </div>
+                        <div class="layer-desc">Hosting, IP, CDN, SSL</div>
+                        <div class="layer-count" id="layerL3">0</div>
+                    </div>
+                    <div class="layer-card glass" data-layer="L4_FINANCIAL">
+                        <div class="layer-header">
+                            <span class="layer-icon">💰</span>
+                            <span class="layer-name">L4 — Financial</span>
+                        </div>
+                        <div class="layer-desc">Payments, Crypto, Money Flow</div>
+                        <div class="layer-count" id="layerL4">0</div>
+                    </div>
+                    <div class="layer-card glass" data-layer="L5_NETWORK">
+                        <div class="layer-header">
+                            <span class="layer-icon">🔗</span>
+                            <span class="layer-name">L5 — Network</span>
+                        </div>
+                        <div class="layer-desc">Connected Domains, Shared IPs</div>
+                        <div class="layer-count" id="layerL5">0</div>
+                    </div>
+                    <div class="layer-card glass" data-layer="L6_HISTORICAL">
+                        <div class="layer-header">
+                            <span class="layer-icon">📚</span>
+                            <span class="layer-name">L6 — Historical</span>
+                        </div>
+                        <div class="layer-desc">Wayback, Changes, Reputation</div>
+                        <div class="layer-count" id="layerL6">0</div>
+                    </div>
+                </div>
+
+                <!-- Recent Scans -->
+                <div class="section-title">Recent Scans</div>
+                <div class="table-container glass">
+                    <table id="recentScansTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Target</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Started</th>
+                                <th>Results</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentScansBody">
+                            <tr><td colspan="6" class="empty-state">No scans yet. Start a new scan to begin.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Live Log Stream -->
+                <div class="section-title">Live Log Stream</div>
+                <div class="log-stream glass" id="dashboardLogStream">
+                    <div class="log-entry info">System initialized. Waiting for scan...</div>
+                </div>
+            </section>
+
+            <!-- Scan Page -->
+            <section id="page-scan" class="page">
+                <div class="page-header">
+                    <h1>New Scan</h1>
+                </div>
+
+                <div class="scan-form glass">
+                    <div class="form-group">
+                        <label>Target</label>
+                        <input type="text" id="scanTarget" placeholder="Domain, URL, or IP address (e.g., gambling-site.com)"
+                               class="input-field">
+                    </div>
+                    <div class="form-group">
+                        <label>Scan Type</label>
+                        <select id="scanType" class="input-field">
+                            <option value="full">Full Kill Chain (All Phases)</option>
+                            <option value="quick">Quick Scan (Detect + Trace)</option>
+                            <option value="detect">Detect Only</option>
+                            <option value="strangle">Strangle (Detect + Trace + Strangle)</option>
+                            <option value="block">Block (Full + DNS Blocklist)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Kill Chain Phases</label>
+                        <div class="phase-toggles">
+                            <label class="phase-toggle">
+                                <input type="checkbox" value="DETECT" checked> <span class="phase-badge detect">DETECT</span>
+                            </label>
+                            <label class="phase-toggle">
+                                <input type="checkbox" value="TRACE" checked> <span class="phase-badge trace">TRACE</span>
+                            </label>
+                            <label class="phase-toggle">
+                                <input type="checkbox" value="STRANGLE"> <span class="phase-badge strangle">STRANGLE</span>
+                            </label>
+                            <label class="phase-toggle">
+                                <input type="checkbox" value="BLOCK"> <span class="phase-badge block">BLOCK</span>
+                            </label>
+                            <label class="phase-toggle">
+                                <input type="checkbox" value="MONITOR"> <span class="phase-badge monitor">MONITOR</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button id="btnStartScan" class="btn btn-primary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5 3 19 12 5 21 5 3"/>
+                            </svg>
+                            Launch Scan
+                        </button>
+                        <button id="btnQuickScan" class="btn btn-secondary">
+                            Quick Recon
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Active Scan Progress -->
+                <div id="scanProgress" class="scan-progress glass" style="display:none">
+                    <div class="progress-header">
+                        <h3>Scan: <span id="activeScanId">—</span></h3>
+                        <span id="activeScanTarget" class="target-badge">—</span>
+                        <button id="btnStopScan" class="btn btn-danger btn-sm">Stop</button>
+                    </div>
+                    <div class="kill-chain-progress">
+                        <div class="kc-phase" data-phase="DETECT">
+                            <div class="kc-icon">🔍</div>
+                            <div class="kc-name">Detect</div>
+                            <div class="kc-status">—</div>
+                        </div>
+                        <div class="kc-arrow">→</div>
+                        <div class="kc-phase" data-phase="TRACE">
+                            <div class="kc-icon">🔎</div>
+                            <div class="kc-name">Trace</div>
+                            <div class="kc-status">—</div>
+                        </div>
+                        <div class="kc-arrow">→</div>
+                        <div class="kc-phase" data-phase="STRANGLE">
+                            <div class="kc-icon">📋</div>
+                            <div class="kc-name">Strangle</div>
+                            <div class="kc-status">—</div>
+                        </div>
+                        <div class="kc-arrow">→</div>
+                        <div class="kc-phase" data-phase="BLOCK">
+                            <div class="kc-icon">🚫</div>
+                            <div class="kc-name">Block</div>
+                            <div class="kc-status">—</div>
+                        </div>
+                        <div class="kc-arrow">→</div>
+                        <div class="kc-phase" data-phase="MONITOR">
+                            <div class="kc-icon">📡</div>
+                            <div class="kc-name">Monitor</div>
+                            <div class="kc-status">—</div>
+                        </div>
+                    </div>
+                    <div class="scan-log-stream" id="scanLogStream"></div>
+                </div>
+            </section>
+
+            <!-- Intelligence Page -->
+            <section id="page-intel" class="page">
+                <div class="page-header">
+                    <h1>Intelligence</h1>
+                    <select id="intelScanSelect" class="input-field input-sm">
+                        <option value="">Select a scan...</option>
+                    </select>
+                </div>
+
+                <div class="intel-layers">
+                    <div class="intel-layer glass" data-layer="L1_DOMAIN">
+                        <div class="intel-layer-header">
+                            <span>🌐 L1 — Domain Intelligence</span>
+                            <span class="count-badge" id="intelCountL1">0</span>
+                        </div>
+                        <div class="intel-layer-body" id="intelBodyL1">
+                            <div class="empty-state">No data</div>
+                        </div>
+                    </div>
+                    <div class="intel-layer glass" data-layer="L2_CONTENT">
+                        <div class="intel-layer-header">
+                            <span>📄 L2 — Content Analysis</span>
+                            <span class="count-badge" id="intelCountL2">0</span>
+                        </div>
+                        <div class="intel-layer-body" id="intelBodyL2">
+                            <div class="empty-state">No data</div>
+                        </div>
+                    </div>
+                    <div class="intel-layer glass" data-layer="L3_INFRA">
+                        <div class="intel-layer-header">
+                            <span>🖥️ L3 — Infrastructure</span>
+                            <span class="count-badge" id="intelCountL3">0</span>
+                        </div>
+                        <div class="intel-layer-body" id="intelBodyL3">
+                            <div class="empty-state">No data</div>
+                        </div>
+                    </div>
+                    <div class="intel-layer glass" data-layer="L4_FINANCIAL">
+                        <div class="intel-layer-header">
+                            <span>💰 L4 — Financial Tracing</span>
+                            <span class="count-badge" id="intelCountL4">0</span>
+                        </div>
+                        <div class="intel-layer-body" id="intelBodyL4">
+                            <div class="empty-state">No data</div>
+                        </div>
+                    </div>
+                    <div class="intel-layer glass" data-layer="L5_NETWORK">
+                        <div class="intel-layer-header">
+                            <span>🔗 L5 — Network Mapping</span>
+                            <span class="count-badge" id="intelCountL5">0</span>
+                        </div>
+                        <div class="intel-layer-body" id="intelBodyL5">
+                            <div class="empty-state">No data</div>
+                        </div>
+                    </div>
+                    <div class="intel-layer glass" data-layer="L6_HISTORICAL">
+                        <div class="intel-layer-header">
+                            <span>📚 L6 — Historical</span>
+                            <span class="count-badge" id="intelCountL6">0</span>
+                        </div>
+                        <div class="intel-layer-body" id="intelBodyL6">
+                            <div class="empty-state">No data</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Evidence Section -->
+                <div class="section-title">Evidence Collection</div>
+                <div class="evidence-list glass" id="evidenceList">
+                    <div class="empty-state">No evidence collected yet</div>
+                </div>
+            </section>
+
+            <!-- Kill Chain Page -->
+            <section id="page-killchain" class="page">
+                <div class="page-header">
+                    <h1>Legal Kill Chain</h1>
+                    <div class="header-badge warning">
+                        Legal Use Only — No DDoS
+                    </div>
+                </div>
+
+                <div class="killchain-visual">
+                    <div class="kc-card glass detect" data-phase="DETECT">
+                        <div class="kc-card-header">
+                            <span class="kc-num">01</span>
+                            <span class="kc-title">DETECT</span>
+                        </div>
+                        <div class="kc-card-desc">Identify gambling sites through automated scanning</div>
+                        <ul class="kc-actions">
+                            <li>Port Scan</li>
+                            <li>Web Scan</li>
+                            <li>Content Analysis</li>
+                            <li>OSINT Harvest</li>
+                        </ul>
+                        <div class="kc-card-status" id="kcStatusDetect">—</div>
+                    </div>
+                    <div class="kc-connector">→</div>
+                    <div class="kc-card glass trace" data-phase="TRACE">
+                        <div class="kc-card-header">
+                            <span class="kc-num">02</span>
+                            <span class="kc-title">TRACE</span>
+                        </div>
+                        <div class="kc-card-desc">Trace infrastructure and ownership details</div>
+                        <ul class="kc-actions">
+                            <li>WHOIS Lookup</li>
+                            <li>DNS Trace</li>
+                            <li>IP Geolocation</li>
+                            <li>Financial Tracing</li>
+                        </ul>
+                        <div class="kc-card-status" id="kcStatusTrace">—</div>
+                    </div>
+                    <div class="kc-connector">→</div>
+                    <div class="kc-card glass strangle" data-phase="STRANGLE">
+                        <div class="kc-card-header">
+                            <span class="kc-num">03</span>
+                            <span class="kc-title">STRANGLE</span>
+                        </div>
+                        <div class="kc-card-desc">File abuse reports to shut down legally</div>
+                        <ul class="kc-actions">
+                            <li>Hosting Report</li>
+                            <li>Registrar Report</li>
+                            <li>SSL Report</li>
+                            <li>Payment Report</li>
+                        </ul>
+                        <div class="kc-card-status" id="kcStatusStrangle">—</div>
+                    </div>
+                    <div class="kc-connector">→</div>
+                    <div class="kc-card glass block" data-phase="BLOCK">
+                        <div class="kc-card-header">
+                            <span class="kc-num">04</span>
+                            <span class="kc-title">BLOCK</span>
+                        </div>
+                        <div class="kc-card-desc">Add to DNS blocklists and filtering</div>
+                        <ul class="kc-actions">
+                            <li>DNS Blocklist</li>
+                            <li>Firewall Rules</li>
+                            <li>Hosts File</li>
+                            <li>ISP Report</li>
+                        </ul>
+                        <div class="kc-card-status" id="kcStatusBlock">—</div>
+                    </div>
+                    <div class="kc-connector">→</div>
+                    <div class="kc-card glass monitor" data-phase="MONITOR">
+                        <div class="kc-card-header">
+                            <span class="kc-num">05</span>
+                            <span class="kc-title">MONITOR</span>
+                        </div>
+                        <div class="kc-card-desc">Monitor for re-emergence</div>
+                        <ul class="kc-actions">
+                            <li>Uptime Monitor</li>
+                            <li>DNS Monitor</li>
+                            <li>Content Monitor</li>
+                            <li>Alert Setup</li>
+                        </ul>
+                        <div class="kc-card-status" id="kcStatusMonitor">—</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Blocklist Page -->
+            <section id="page-blocklist" class="page">
+                <div class="page-header">
+                    <h1>Blocklist</h1>
+                    <div class="header-actions">
+                        <button id="btnExportBlocklist" class="btn btn-secondary btn-sm">
+                            Export Hosts File
+                        </button>
+                        <button id="btnRefreshBlocklist" class="btn btn-secondary btn-sm">
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div class="blocklist-form glass">
+                    <h3>Add to Blocklist</h3>
+                    <div class="form-row">
+                        <input type="text" id="blockDomain" placeholder="Domain (e.g., gambling-site.com)" class="input-field">
+                        <input type="text" id="blockIP" placeholder="IP (optional)" class="input-field input-sm">
+                        <input type="text" id="blockReason" placeholder="Reason" class="input-field">
+                        <button id="btnAddBlock" class="btn btn-danger">Block</button>
+                    </div>
+                </div>
+
+                <div class="table-container glass">
+                    <table id="blocklistTable">
+                        <thead>
+                            <tr>
+                                <th>Domain</th>
+                                <th>IP Address</th>
+                                <th>Reason</th>
+                                <th>Added</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody id="blocklistBody">
+                            <tr><td colspan="5" class="empty-state">No blocked domains yet</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Tools Page -->
+            <section id="page-tools" class="page">
+                <div class="page-header">
+                    <h1>Kali Linux Tools</h1>
+                    <span class="tools-count" id="toolsCount">0 available</span>
+                </div>
+
+                <div class="tools-grid" id="toolsGrid">
+                    <div class="empty-state">Loading tools...</div>
+                </div>
+
+                <div class="manual-tool glass">
+                    <h3>Run Tool Manually</h3>
+                    <div class="form-row">
+                        <input type="text" id="manualTool" placeholder="Tool name (e.g., nmap)" class="input-field input-sm">
+                        <input type="text" id="manualTarget" placeholder="Target" class="input-field">
+                        <input type="text" id="manualArgs" placeholder="Arguments (optional)" class="input-field">
+                        <button id="btnRunTool" class="btn btn-primary">Execute</button>
+                    </div>
+                    <div class="tool-output" id="toolOutput">
+                        <div class="empty-state">Output will appear here</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Terminal/Logs Page -->
+            <section id="page-logs" class="page">
+                <div class="page-header">
+                    <h1>Terminal</h1>
+                    <button id="btnClearLogs" class="btn btn-secondary btn-sm">Clear</button>
+                </div>
+                <div class="terminal glass" id="terminalWindow">
+                    <div class="terminal-header">
+                        <span class="terminal-dot red"></span>
+                        <span class="terminal-dot yellow"></span>
+                        <span class="terminal-dot green"></span>
+                        <span class="terminal-title">mythos@nemesis:~$</span>
+                    </div>
+                    <div class="terminal-body" id="terminalBody">
+                        <div class="terminal-line system">MYTHOS NEMESIS v2.0 — Terminal Output</div>
+                        <div class="terminal-line system">By: ibnu qory nur fikri / Dorakula</div>
+                        <div class="terminal-line system">─────────────────────────────────────</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- IP Tracker Page -->
+            <section id="page-iptracker" class="page">
+                <div class="page-header">
+                    <h1>IP Address Tracker</h1>
+                    <div class="header-badge warning">
+                        Pelacak Lokasi — Pihak Berwenang
+                    </div>
+                </div>
+
+                <!-- IP Track Input -->
+                <div class="iptrack-form glass">
+                    <h3>Track IP Address / Domain</h3>
+                    <div class="form-row">
+                        <input type="text" id="ipTrackTarget" placeholder="IP address or domain (e.g., 103.45.67.89 or gambling-site.com)" class="input-field" style="flex:3">
+                        <button id="btnTrackIP" class="btn btn-primary" style="flex:1">Track Location</button>
+                        <button id="btnQuickLookup" class="btn btn-secondary" style="flex:1">Quick Lookup</button>
+                    </div>
+                    <div class="form-row" style="margin-top:8px">
+                        <textarea id="ipBatchTargets" placeholder="Batch: Enter multiple IPs/domains (one per line)" class="input-field" rows="3" style="flex:3"></textarea>
+                        <button id="btnBatchTrack" class="btn btn-secondary" style="flex:1;align-self:flex-end">Batch Track</button>
+                    </div>
+                </div>
+
+                <!-- Quick Lookup Result -->
+                <div class="ipquick-result glass" id="ipQuickResult" style="display:none">
+                    <div class="section-title">Quick Location Summary</div>
+                    <div class="ipquick-grid">
+                        <div class="ipquick-item">
+                            <span class="ipquick-label">IP Address</span>
+                            <span class="ipquick-value" id="quickIP">—</span>
+                        </div>
+                        <div class="ipquick-item">
+                            <span class="ipquick-label">Location</span>
+                            <span class="ipquick-value" id="quickLocation">—</span>
+                        </div>
+                        <div class="ipquick-item">
+                            <span class="ipquick-label">Coordinates</span>
+                            <span class="ipquick-value" id="quickCoords">—</span>
+                        </div>
+                        <div class="ipquick-item">
+                            <span class="ipquick-label">ISP</span>
+                            <span class="ipquick-value" id="quickISP">—</span>
+                        </div>
+                        <div class="ipquick-item">
+                            <span class="ipquick-label">Country</span>
+                            <span class="ipquick-value" id="quickCountry">—</span>
+                        </div>
+                        <div class="ipquick-item">
+                            <span class="ipquick-label">Hosting</span>
+                            <span class="ipquick-value" id="quickHosting">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Full Track Results -->
+                <div class="iptrack-results" id="ipTrackResults" style="display:none">
+                    <div class="section-title">Full Tracking Results</div>
+
+                    <!-- Risk Level Banner -->
+                    <div class="risk-banner" id="ipRiskBanner">
+                        <span class="risk-label">Risk Level:</span>
+                        <span class="risk-value" id="ipRiskLevel">UNKNOWN</span>
+                    </div>
+
+                    <!-- Target Info -->
+                    <div class="iptrack-section glass">
+                        <div class="iptrack-section-header">
+                            <span>1. Target Information</span>
+                        </div>
+                        <div class="iptrack-detail-grid">
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Original Target</span>
+                                <span class="detail-value" id="ipTarget">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Resolved IP</span>
+                                <span class="detail-value" id="ipResolved">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Reverse DNS</span>
+                                <span class="detail-value" id="ipReverseDNS">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Geo Location -->
+                    <div class="iptrack-section glass">
+                        <div class="iptrack-section-header">
+                            <span>2. Geographic Location</span>
+                        </div>
+                        <div class="iptrack-detail-grid">
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Continent</span>
+                                <span class="detail-value" id="ipContinent">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Country</span>
+                                <span class="detail-value" id="ipCountry">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Region</span>
+                                <span class="detail-value" id="ipRegion">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">City</span>
+                                <span class="detail-value" id="ipCity">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Coordinates</span>
+                                <span class="detail-value" id="ipCoords">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Timezone</span>
+                                <span class="detail-value" id="ipTimezone">—</span>
+                            </div>
+                        </div>
+                        <!-- Map Placeholder -->
+                        <div class="iptrack-map glass" id="ipMapContainer">
+                            <div class="map-placeholder">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+                                    <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
+                                    <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
+                                </svg>
+                                <div id="ipMapInfo">Location will appear here</div>
+                                <div id="ipMapCoords" style="font-size:11px;color:var(--text-dim)"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ISP & ASN -->
+                    <div class="iptrack-section glass">
+                        <div class="iptrack-section-header">
+                            <span>3. ISP & ASN Information</span>
+                        </div>
+                        <div class="iptrack-detail-grid">
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">ISP</span>
+                                <span class="detail-value" id="ipISP">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Organization</span>
+                                <span class="detail-value" id="ipOrg">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">AS Number</span>
+                                <span class="detail-value" id="ipAS">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">AS Name</span>
+                                <span class="detail-value" id="ipASName">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hosting Provider -->
+                    <div class="iptrack-section glass">
+                        <div class="iptrack-section-header">
+                            <span>4. Hosting Provider Detection</span>
+                        </div>
+                        <div class="iptrack-detail-grid" id="ipHostingGrid">
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Provider</span>
+                                <span class="detail-value" id="ipHostingName">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Type</span>
+                                <span class="detail-value" id="ipHostingType">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Abuse Email</span>
+                                <span class="detail-value" id="ipHostingAbuse">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Report URL</span>
+                                <span class="detail-value" id="ipHostingURL">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VPN/Proxy Detection -->
+                    <div class="iptrack-section glass">
+                        <div class="iptrack-section-header">
+                            <span>5. VPN/Proxy/Hosting Detection</span>
+                        </div>
+                        <div class="iptrack-detail-grid">
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">VPN/Proxy Detected</span>
+                                <span class="detail-value" id="ipVPNStatus">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Type</span>
+                                <span class="detail-value" id="ipVPNType">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Confidence</span>
+                                <span class="detail-value" id="ipVPNConfidence">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WHOIS Data -->
+                    <div class="iptrack-section glass">
+                        <div class="iptrack-section-header">
+                            <span>6. WHOIS Data</span>
+                        </div>
+                        <div class="iptrack-detail-grid">
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Network Name</span>
+                                <span class="detail-value" id="ipWhoisNet">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Organization</span>
+                                <span class="detail-value" id="ipWhoisOrg">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Country</span>
+                                <span class="detail-value" id="ipWhoisCountry">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">IP Range</span>
+                                <span class="detail-value" id="ipWhoisRange">—</span>
+                            </div>
+                            <div class="iptrack-detail-item">
+                                <span class="detail-label">Abuse Contact</span>
+                                <span class="detail-value" id="ipWhoisAbuse">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Port & Service Scan -->
+                    <div class="iptrack-section glass">
+                        <div class="iptrack-section-header">
+                            <span>7. Port & Service Scan</span>
+                        </div>
+                        <div class="table-container">
+                            <table id="ipPortsTable">
+                                <thead>
+                                    <tr><th>Port</th><th>State</th><th>Service</th><th>Version</th></tr>
+                                </thead>
+                                <tbody id="ipPortsBody">
+                                    <tr><td colspan="4" class="empty-state">No scan data yet</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="iptrack-detail-item" style="margin-top:8px">
+                            <span class="detail-label">OS Guess</span>
+                            <span class="detail-value" id="ipOSGuess">—</span>
+                        </div>
+                    </div>
+
+                    <!-- Traceroute -->
+                    <div class="iptrack-section glass">
+                        <div class="iptrack-section-header">
+                            <span>8. Traceroute Path</span>
+                        </div>
+                        <div class="traceroute-list" id="ipTracerouteList">
+                            <div class="empty-state">No traceroute data yet</div>
+                        </div>
+                    </div>
+
+                    <!-- Abuse Contacts -->
+                    <div class="iptrack-section glass">
+                        <div class="iptrack-section-header">
+                            <span>9. Abuse Contacts</span>
+                        </div>
+                        <div class="abuse-contacts-list" id="ipAbuseContacts">
+                            <div class="empty-state">No abuse contacts found</div>
+                        </div>
+                    </div>
+
+                    <!-- Authority Report -->
+                    <div class="iptrack-section glass">
+                        <div class="iptrack-section-header">
+                            <span>10. Authority Report (Laporan untuk Pihak Berwenang)</span>
+                            <button class="btn btn-secondary btn-sm" id="btnCopyReport">Copy Report</button>
+                        </div>
+                        <div class="authority-report" id="ipAuthorityReport">
+                            <div class="empty-state">Run IP tracking to generate authority report</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div class="iptrack-loading glass" id="ipTrackLoading" style="display:none">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Tracking IP Address...</div>
+                    <div class="loading-sub" id="ipTrackStatus">Resolving target...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Socket.IO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

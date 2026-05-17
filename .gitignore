@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# MYTHOS Data
+*.db
+*.sqlite3
+data/*.db
+logs/*.log
+evidence/*
+reports/*.pdf
+reports/*.html
+reports/*.json
+
+# Sensitive
+*.pem
+*.key
+.env
+
+# Compiled
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.pyc
