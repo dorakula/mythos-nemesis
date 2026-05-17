@@ -618,7 +618,7 @@ class KaliTools:
         self.log.info(f"JS analysis -> {url}")
         r = self._run("curl -sL " + url + " 2>/dev/null | grep -iE " + chr(39) + "api_key|secret|password|token|midtrans|xendit|doku|dana|gopay|ovo|wallet|payment|deposit|withdraw|qris" + chr(39) + " | head -50")
         results.append(("JS-SECRETS", r))
-        r = self._run("curl -sL " + url + " 2>/dev/null | grep -iE " + chr(39) + "src=.*\.js" + chr(39) + " | head -20")
+        r = self._run("curl -sL " + url + " 2>/dev/null | grep -iE " + chr(39) + "src=.*\\.js" + chr(39) + " | head -20")
         results.append(("JS-URLS", r))
         return results
 
@@ -628,13 +628,13 @@ class KaliTools:
         gambling_kw = 'slot|casino|bet|judi|togel|taruhan|poker|domino|roulette|blackjack|baccarat|deposit|withdraw|jackpot|bonus|promosi|rtp|wa.me|t.me|pragmatic|pgsoft|habanero|sbobet|cmd368'
         r = self._run("curl -sL " + url + " 2>/dev/null | grep -oiE '" + gambling_kw + "' | sort | uniq -c | sort -rn")
         results.append(('GAMBLING-KEYWORDS', r))
-        r = self._run("curl -sL " + url + " 2>/dev/null | grep -oiE '(wa\.me|t\.me|crisp|tawk|livechat)' | sort | uniq -c")
+        r = self._run("curl -sL " + url + " 2>/dev/null | grep -oiE '(wa\\.me|t\\.me|crisp|tawk|livechat)' | sort | uniq -c")
         results.append(('CHAT-WIDGETS', r))
-        r = self._run("curl -sL " + url + " 2>/dev/null | grep -oiE '\+?62[0-9]{8,13}' | sort -u")
+        r = self._run("curl -sL " + url + " 2>/dev/null | grep -oiE '\\+?62[0-9]{8,13}' | sort -u")
         results.append(('PHONE-NUMBERS', r))
-        r = self._run("curl -sL " + url + " 2>/dev/null | grep -oiE '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' | sort -u")
+        r = self._run("curl -sL " + url + " 2>/dev/null | grep -oiE '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}' | sort -u")
         results.append(('EMAILS', r))
-        r = self._run("curl -sI " + url + " | grep -i 'cf-ray\|cloudflare'")
+        r = self._run("curl -sI " + url + " | grep -i 'cf-ray\\|cloudflare'")
         results.append(('CLOUDFLARE', r))
         return results
 
@@ -1316,7 +1316,7 @@ class HexStrikeBridge:
     HEXSTRIKE_PATH = "/home/kali/hexstrike-ai"
     HEXSTRIKE_VENV = "/home/kali/hexstrike-ai/hexstrike-env"
     HEXSTRIKE_SERVER = "/home/kali/hexstrike-ai/hexstrike_server.py"
-    STARTUP_TIMEOUT = 30
+    STARTUP_TIMEOUT = 45
 
     TOOL_CATEGORIES = {
         "essential": ["nmap", "gobuster", "dirb", "nikto", "sqlmap", "hydra", "john", "hashcat"],
@@ -1413,8 +1413,8 @@ class HexStrikeBridge:
             self._server_process = subprocess.Popen(
                 [venv_python, self.HEXSTRIKE_SERVER],
                 cwd=self.HEXSTRIKE_PATH,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
                 env={**os.environ, "HEXSTRIKE_PORT": "8888", "HEXSTRIKE_HOST": "127.0.0.1"}
             )
             for i in range(self.STARTUP_TIMEOUT):
@@ -1473,7 +1473,7 @@ class HexStrikeBridge:
             url = f"{self.api_url}{endpoint}"
             if data:
                 req = urllib.request.Request(url, data=json.dumps(data).encode(),
-                                             headers={Content-Type: application/json})
+                                             headers={chr(34)+chr(67)+chr(111)+chr(110)+chr(116)+chr(101)+chr(110)+chr(116)+chr(45)+chr(84)+chr(121)+chr(112)+chr(101)+chr(34): chr(34)+chr(97)+chr(112)+chr(112)+chr(108)+chr(105)+chr(99)+chr(97)+chr(116)+chr(105)+chr(111)+chr(110)+chr(47)+chr(106)+chr(115)+chr(111)+chr(110)+chr(34)})
                 resp = urllib.request.urlopen(req, timeout=timeout)
             else:
                 resp = urllib.request.urlopen(url, timeout=timeout)
@@ -2993,9 +2993,6 @@ def api_report(scan_id):
         report['intelligence_layers'][layer].append(item)
     return jsonify(report)
 
-@app.route('/api/hexstrike/status')
-def api_hexstrike_status():
-    return jsonify({'available': hexstrike.is_available(), 'api_url': HEXSTRIKE_API})
 
 @app.route('/api/payment/detect', methods=['POST'])
 def api_payment_detect():
