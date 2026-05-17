@@ -45,3 +45,4 @@ reports/*.json
 *.exe
 *.o
 *.pyc
+*.bak

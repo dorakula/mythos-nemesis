@@ -311,7 +311,7 @@ db = MythosDB()
 # KALI LINUX TOOL WRAPPERS
 # ============================================================
 class KaliTools:
-    """Integration with 50+ Kali Linux security tools"""
+    """Integration with 80+ Kali Linux security tools - V2 DEEP ENGINE"""
 
     def __init__(self, logger):
         self.log = logger
@@ -319,200 +319,366 @@ class KaliTools:
 
     def _check_tools(self):
         self.tools = {}
-        common = [
-            'nmap', 'sqlmap', 'nikto', 'dirb', 'gobuster', 'ffuf',
-            'wpscan', 'enum4linux', 'smbclient', 'hydra', 'medusa',
-            'john', 'hashcat', 'aircrack-ng', 'wireshark', 'tcpdump',
-            'burpsuite', 'zaproxy', 'metasploit', 'msfconsole',
-            'responder', 'impacket', 'crackmapexec', 'bloodhound',
-            'nuclei', 'httpx', 'subfinder', 'amass', 'shodan',
-            'censys', 'theHarvester', 'maltego', 'spiderfoot',
-            'recon-ng', 'osint-framework', 'whois', 'dig', 'host',
-            'dnsrecon', 'dnsenum', 'fierce', 'massdns',
-            'whatweb', 'wafw00f', 'sslscan', 'sslyze',
-            'searchsploit', 'exploitdb', 'payloadsallthethings',
-            'feroxbuster', 'rustscan', 'naabu', 'httpx-toolkit'
-        ]
-        for tool in common:
+        recon = ['nmap','rustscan','naabu','masscan','subfinder','amass','httpx','dnsx','tlsx']
+        dns_tools = ['dig','host','whois','dnsrecon','dnsenum','fierce','massdns']
+        web_tools = ['nikto','whatweb','wafw00f','sslscan','sslyze','gobuster','dirb','feroxbuster','ffuf','wfuzz','wpscan','cmseek','joomscan']
+        vuln_tools = ['nuclei','sqlmap','commix','xsstrike','searchsploit','dalfox']
+        osint_tools = ['theHarvester','maltego','spiderfoot','recon-ng','shodan','censys','holehe','sherlock','maigret']
+        net_tools = ['enum4linux','smbclient','crackmapexec','responder','impacket','bloodhound','netcat','socat','tcpdump','hping3','fping','traceroute','mtr']
+        crack_tools = ['hydra','medusa','john','hashcat','cewl','crunch']
+        frameworks = ['metasploit','msfconsole','burpsuite','zaproxy']
+        wifi_tools = ['aircrack-ng','airodump-ng']
+        forensic_tools = ['binwalk','foremost','exiftool','steghide','volatility','ghidra']
+        rev_tools = ['radare2','gdb','objdump','strace','ltrace']
+        mal_tools = ['yara','clamav','strings']
+        extra_tools = ['curl','wget','python3','katana','crobat','phoneinfoga','h8mail','infoga','arp-scan','netdiscover','snmpwalk','onesixtyone','nbtscan','ike-scan']
+        all_tools = list(set(recon+dns_tools+web_tools+vuln_tools+osint_tools+net_tools+crack_tools+frameworks+wifi_tools+forensic_tools+rev_tools+mal_tools+extra_tools))
+        for tool in all_tools:
             result = shutil.which(tool)
             if result:
                 self.tools[tool] = result
+        self.categories = {
+            'Recon': [t for t in recon if t in self.tools],
+            'DNS': [t for t in dns_tools if t in self.tools],
+            'Web': [t for t in web_tools if t in self.tools],
+            'Vuln': [t for t in vuln_tools if t in self.tools],
+            'OSINT': [t for t in osint_tools if t in self.tools],
+            'Network': [t for t in net_tools if t in self.tools],
+            'Crack': [t for t in crack_tools if t in self.tools],
+            'Framework': [t for t in frameworks if t in self.tools],
+            'WiFi': [t for t in wifi_tools if t in self.tools],
+            'Forensic': [t for t in forensic_tools if t in self.tools],
+            'Reverse': [t for t in rev_tools if t in self.tools],
+            'Malware': [t for t in mal_tools if t in self.tools],
+            'Extra': [t for t in extra_tools if t in self.tools],
+        }
 
     def available(self):
         return list(self.tools.keys())
 
+    def count_by_category(self):
+        return {cat: len(tools) for cat, tools in self.categories.items()}
+
     def _run(self, cmd, timeout=300):
         try:
-            result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
             return result.stdout + result.stderr
         except subprocess.TimeoutExpired:
             return f"[TIMEOUT] Command timed out after {timeout}s"
         except Exception as e:
             return f"[ERROR] {str(e)}"
 
-    # --- RECONNAISSANCE ---
     def nmap_scan(self, target, scan_type='quick'):
-        if 'nmap' not in self.tools:
-            return "[SKIP] nmap not found"
+        if 'nmap' not in self.tools: return "[SKIP] nmap not found"
         opts = {
-            'quick': '-sV --top-ports 100 -T4',
-            'full': '-sV -sC -p- -T4',
-            'stealth': '-sS -T2 -f --data-length 24',
-            'vuln': '--script vuln -sV',
-            'udp': '-sU --top-ports 50 -T4',
+            'quick': '-sV --top-ports 1000 -T4 --version-intensity 5',
+            'full': '-sV -sC -p- -T4 --version-all --script=default,vuln',
+            'stealth': '-sS -T2 -f --data-length 24 -D RND:10',
+            'vuln': '--script vuln,exploit,auth -sV --version-all',
+            'udp': '-sU --top-ports 100 -T4',
+            'aggressive': '-A -T4 --version-all --script=default,vuln,exploit',
+            'os': '-O -sV --version-intensity 5 --osscan-guess',
+            'service': '-sV --version-all --version-intensity 9',
+            'script_gambling': '--script http-title,http-headers,ssl-cert,dns-brute,vuln -sV',
+            'firewall': '-sA -T4 --script firewall-bypass',
+            'smb': '-p 445 --script smb-vuln*,smb-enum-shares,smb-enum-users,smb-os-discovery',
+            'ftp': '-p 21 --script ftp-anon,ftp-brute,ftp-vuln*',
+            'mysql': '-p 3306 --script mysql-vuln*,mysql-empty-password,mysql-brute',
+            'web': '--script http-enum,http-headers,http-methods,http-sql-injection,http-xss -p 80,443,8080,8443',
         }
         opt = opts.get(scan_type, opts['quick'])
-        self.log.info(f"nmap {scan_type} scan → {target}")
+        self.log.info(f"nmap {scan_type} scan -> {target}")
         return self._run(f"sudo {self.tools['nmap']} {opt} {target}")
 
     def rustscan(self, target):
-        if 'rustscan' not in self.tools:
-            return self.nmap_scan(target, 'quick')
-        self.log.info(f"rustscan → {target}")
-        return self._run(f"{self.tools['rustscan']} -a {target} -- -sV")
+        if 'rustscan' not in self.tools: return self.nmap_scan(target, 'quick')
+        self.log.info(f"rustscan -> {target}")
+        return self._run(f"{self.tools['rustscan']} -a {target} -- -sV -sC")
+
+    def masscan_scan(self, target, ports='1-65535', rate=1000):
+        if 'masscan' not in self.tools: return "[SKIP] masscan not found"
+        self.log.info(f"masscan -> {target}")
+        return self._run(f"sudo {self.tools['masscan']} -p{ports} --rate={rate} {target}")
 
     def naabu_scan(self, target):
-        if 'naabu' not in self.tools:
-            return "[SKIP] naabu not found"
-        self.log.info(f"naabu → {target}")
-        return self._run(f"{self.tools['naabu']} -host {target}")
+        if 'naabu' not in self.tools: return "[SKIP] naabu not found"
+        self.log.info(f"naabu -> {target}")
+        return self._run(f"{self.tools['naabu']} -host {target} -p -")
 
-    # --- DNS ---
     def dns_enum(self, domain):
         results = []
-        self.log.info(f"DNS enumeration → {domain}")
-        # dig
+        self.log.info(f"DNS enumeration -> {domain}")
         if shutil.which('dig'):
-            r = self._run(f"dig ANY +noall +answer {domain}")
-            results.append(('DNS-DIG', r))
-        # dnsrecon
+            for rtype in ['ANY','A','AAAA','MX','NS','TXT','SOA','CNAME','SRV']:
+                r = self._run(f"dig {rtype} +noall +answer {domain}")
+                if r.strip(): results.append((f'DNS-DIG-{rtype}', r))
         if 'dnsrecon' in self.tools:
-            r = self._run(f"{self.tools['dnsrecon']} -d {domain} -t std")
+            r = self._run(f"{self.tools['dnsrecon']} -d {domain} -t std,zonewalk,brt,srv,axfr")
             results.append(('DNSRECON', r))
-        # dnsenum
         if 'dnsenum' in self.tools:
             r = self._run(f"{self.tools['dnsenum']} {domain}")
             results.append(('DNSENUM', r))
-        # fierce
         if 'fierce' in self.tools:
             r = self._run(f"{self.tools['fierce']} --domain {domain}")
             results.append(('FIERCE', r))
+        if shutil.which('dig'):
+            r = self._run(f"dig AXFR {domain}")
+            results.append(('DNS-ZONEXFER', r))
         return results
 
     def subdomain_enum(self, domain):
         results = []
-        self.log.info(f"Subdomain enumeration → {domain}")
+        self.log.info(f"Subdomain enumeration -> {domain}")
         if 'subfinder' in self.tools:
-            r = self._run(f"{self.tools['subfinder']} -d {domain} -silent")
+            r = self._run(f"{self.tools['subfinder']} -d {domain} -all -silent")
             results.append(('SUBFINDER', r))
         if 'amass' in self.tools:
             r = self._run(f"{self.tools['amass']} enum -passive -d {domain}")
             results.append(('AMASS', r))
+        if 'dnsx' in self.tools:
+            r = self._run(f"{self.tools.get('subfinder','subfinder')} -d {domain} -silent | {self.tools['dnsx']} -silent -a -resp")
+            results.append(('DNSX', r))
+        r = self._run("curl -s 'https://crt.sh/?q=%25." + domain + "&output=json' 2>/dev/null")
+        if r.strip() and not r.startswith('[ERROR'): results.append(('CRT_SH', r))
         return results
 
-    # --- WEB ---
     def web_scan(self, url):
         results = []
-        self.log.info(f"Web scanning → {url}")
-        # nikto
+        self.log.info(f"Web scanning -> {url}")
         if 'nikto' in self.tools:
-            r = self._run(f"{self.tools['nikto']} -h {url} -Tuning 1234567890", 180)
+            r = self._run(f"{self.tools['nikto']} -h {url} -Tuning 1234567890abcde", 300)
             results.append(('NIKTO', r))
-        # whatweb
         if 'whatweb' in self.tools:
-            r = self._run(f"{self.tools['whatweb']} -a 3 {url}")
+            r = self._run(f"{self.tools['whatweb']} -a 3 -c 50 {url}")
             results.append(('WHATWEB', r))
-        # wafw00f
         if 'wafw00f' in self.tools:
-            r = self._run(f"{self.tools['wafw00f']} {url}")
+            r = self._run(f"{self.tools['wafw00f']} -a {url}")
             results.append(('WAFW00F', r))
-        # sslscan
         if 'sslscan' in self.tools:
-            r = self._run(f"{self.tools['sslscan']} {url}")
+            r = self._run(f"{self.tools['sslscan']} --no-colour {url}")
             results.append(('SSLSCAN', r))
+        r = self._run(f"curl -sI -L -A 'Mozilla/5.0' {url}")
+        results.append(('HTTP-HEADERS', r))
+        if 'cmseek' in self.tools:
+            r = self._run(f"{self.tools['cmseek']} -u {url} --random-agent", 120)
+            results.append(('CMSEEK', r))
+        if 'joomscan' in self.tools:
+            r = self._run(f"{self.tools['joomscan']} -u {url}", 120)
+            results.append(('JOOMSCAN', r))
         return results
 
     def dir_bruteforce(self, url, wordlist=None):
         results = []
         wl = wordlist or '/usr/share/wordlists/dirb/common.txt'
-        if not os.path.exists(wl):
-            wl = '/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt'
-        self.log.info(f"Directory bruteforce → {url}")
+        if not os.path.exists(wl): wl = '/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt'
+        self.log.info(f"Directory bruteforce -> {url}")
         if 'gobuster' in self.tools:
-            r = self._run(f"{self.tools['gobuster']} dir -u {url} -w {wl} -q", 180)
+            r = self._run(f"{self.tools['gobuster']} dir -u {url} -w {wl} -x php,html,js,txt,bak,sql,zip,git,env,config -q -t 50", 300)
             results.append(('GOBUSTER', r))
         elif 'dirb' in self.tools:
-            r = self._run(f"{self.tools['dirb']} {url} {wl} -r", 180)
+            r = self._run(f"{self.tools['dirb']} {url} {wl} -r -X .php,.html,.js,.txt,.bak,.sql,.zip,.git,.env", 300)
             results.append(('DIRB', r))
         if 'feroxbuster' in self.tools:
-            r = self._run(f"{self.tools['feroxbuster']} -u {url} -w {wl} --quiet", 180)
+            r = self._run(f"{self.tools['feroxbuster']} -u {url} -w {wl} -x php,html,js,txt,bak,sql,zip,git,env --depth 3 --quiet -t 50", 300)
             results.append(('FEROXBUSTER', r))
+        if 'ffuf' in self.tools:
+            r = self._run(f"{self.tools['ffuf']} -u {url}/FUZZ -w {wl} -mc 200,301,302,403 -t 50", 180)
+            results.append(('FFUF', r))
+        if 'wfuzz' in self.tools:
+            r = self._run(f"{self.tools['wfuzz']} -z file,{wl} --hc 404 {url}/FUZZ", 180)
+            results.append(('WFUZZ', r))
         return results
 
     def vuln_scan(self, url):
         results = []
-        self.log.info(f"Vulnerability scanning → {url}")
+        self.log.info(f"Vulnerability scanning -> {url}")
         if 'nuclei' in self.tools:
-            r = self._run(f"{self.tools['nuclei']} -u {url} -severity medium,high,critical", 300)
+            r = self._run(f"{self.tools['nuclei']} -u {url} -severity low,medium,high,critical -tags cve,exposure,misconfig,vuln", 600)
             results.append(('NUCLEI', r))
         if 'sqlmap' in self.tools:
-            r = self._run(f"{self.tools['sqlmap']} -u {url} --batch --level=1 --risk=1 --random-agent", 180)
+            r = self._run(f"{self.tools['sqlmap']} -u {url} --batch --level=3 --risk=2 --random-agent --dbs --forms --crawl=2", 300)
             results.append(('SQLMAP', r))
+        if 'dalfox' in self.tools:
+            r = self._run(f"{self.tools['dalfox']} url {url} --silence", 180)
+            results.append(('DALFOX', r))
+        elif 'xsstrike' in self.tools:
+            r = self._run(f"{self.tools['xsstrike']} -u {url}", 180)
+            results.append(('XSSTRIKE', r))
+        if 'commix' in self.tools:
+            r = self._run(f"{self.tools['commix']} --url={url} --batch", 180)
+            results.append(('COMMIX', r))
         if 'wpscan' in self.tools:
-            r = self._run(f"{self.tools['wpscan']} --url {url} --random-user-agent --enumerate u,p,t", 180)
+            r = self._run(f"{self.tools['wpscan']} --url {url} --random-user-agent --enumerate u,p,t,cb,dbe --plugins-detection aggressive", 300)
             results.append(('WPSCAN', r))
         return results
 
-    # --- OSINT ---
     def osint_harvest(self, domain):
         results = []
-        self.log.info(f"OSINT harvesting → {domain}")
+        self.log.info(f"OSINT harvesting -> {domain}")
         if 'theHarvester' in self.tools:
-            r = self._run(f"{self.tools['theHarvester']} -d {domain} -b all", 180)
+            r = self._run(f"{self.tools['theHarvester']} -d {domain} -b all", 300)
             results.append(('THEHARVESTER', r))
-        # whois
         if shutil.which('whois'):
             r = self._run(f"whois {domain}")
             results.append(('WHOIS', r))
-        # shodan (if CLI available)
         if 'shodan' in self.tools:
             r = self._run(f"{self.tools['shodan']} host {domain}")
             results.append(('SHODAN', r))
+        r = self._run("curl -s 'http://web.archive.org/cdx/search/cdx?url=" + domain + "/*&output=text&fl=original&limit=50' 2>/dev/null")
+        results.append(('WAYBACK', r))
+        r = self._run("curl -s -X POST 'https://urlhaus-api.abuse.ch/v1/host/' -d 'host=" + domain + "' 2>/dev/null")
+        results.append(('URLHAUS', r))
         return results
 
-    # --- SMB / NETWORK ---
+    def email_osint(self, email):
+        results = []
+        self.log.info(f"Email OSINT -> {email}")
+        if 'holehe' in self.tools:
+            r = self._run(f"{self.tools['holehe']} {email}", 120)
+            results.append(('HOLEHE', r))
+        if 'h8mail' in self.tools:
+            r = self._run(f"{self.tools['h8mail']} -t {email}", 120)
+            results.append(('H8MAIL', r))
+        if 'infoga' in self.tools:
+            r = self._run(f"{self.tools['infoga']} -t {email}", 120)
+            results.append(('INFOGA', r))
+        return results
+
+    def phone_osint(self, phone):
+        results = []
+        self.log.info(f"Phone OSINT -> {phone}")
+        if 'phoneinfoga' in self.tools:
+            r = self._run(f"{self.tools['phoneinfoga']} scan -n {phone}", 120)
+            results.append(('PHONEINFOGA', r))
+        return results
+
+    def username_osint(self, username):
+        results = []
+        self.log.info(f"Username OSINT -> {username}")
+        if 'sherlock' in self.tools:
+            r = self._run(f"{self.tools['sherlock']} {username} --timeout 20", 180)
+            results.append(('SHERLOCK', r))
+        if 'maigret' in self.tools:
+            r = self._run(f"{self.tools['maigret']} {username} --all-sites", 300)
+            results.append(('MAIGRET', r))
+        return results
+
     def smb_enum(self, target):
         results = []
-        self.log.info(f"SMB enumeration → {target}")
+        self.log.info(f"SMB enumeration -> {target}")
         if 'enum4linux' in self.tools:
-            r = self._run(f"{self.tools['enum4linux']} -a {target}", 180)
+            r = self._run(f"{self.tools['enum4linux']} -a {target}", 300)
             results.append(('ENUM4LINUX', r))
         if 'smbclient' in self.tools:
             r = self._run(f"{self.tools['smbclient']} -L //{target}/ -N")
             results.append(('SMBCLIENT', r))
         if 'crackmapexec' in self.tools:
-            r = self._run(f"{self.tools['crackmapexec']} smb {target}")
+            r = self._run(f"{self.tools['crackmapexec']} smb {target} --shares --users --sessions --disks")
             results.append(('CRACKMAPEXEC', r))
         return results
 
-    # --- EXPLOIT SEARCH ---
+    def network_scan(self, target):
+        results = []
+        self.log.info(f"Network scan -> {target}")
+        if 'arp-scan' in self.tools:
+            r = self._run(f"sudo {self.tools['arp-scan']} -l")
+            results.append(('ARP-SCAN', r))
+        if 'netdiscover' in self.tools:
+            r = self._run(f"sudo {self.tools['netdiscover']} -r {target}/24", 30)
+            results.append(('NETDISCOVER', r))
+        if shutil.which('snmpwalk'):
+            r = self._run(f"snmpwalk -v2c -c public {target}", 60)
+            results.append(('SNMPWALK', r))
+        if 'onesixtyone' in self.tools:
+            r = self._run(f"{self.tools['onesixtyone']} -c /usr/share/doc/onesixtyone/community -i {target}")
+            results.append(('ONESIXTYONE', r))
+        return results
+
+    def web_crawl(self, url, depth=2):
+        results = []
+        self.log.info(f"Web crawling -> {url}")
+        if 'katana' in self.tools:
+            r = self._run(f"{self.tools['katana']} -u {url} -d {depth} -jc -aff", 300)
+            results.append(('KATANA', r))
+        return results
+
+    def screenshot_site(self, url):
+        results = []
+        self.log.info(f"Screenshot -> {url}")
+        if shutil.which('cutycapt'):
+            r = self._run(f"cutycapt --url={url} --out=/tmp/mythos_screenshot.png --min-width=1920", 60)
+            results.append(('CUTYCAPT', r))
+        if shutil.which('wkhtmltoimage'):
+            r = self._run(f"wkhtmltoimage --quality 90 --width 1920 {url} /tmp/mythos_screenshot.png", 60)
+            results.append(('WKHTML', r))
+        return results
+
+    def js_analyze(self, url):
+        results = []
+        self.log.info(f"JS analysis -> {url}")
+        r = self._run("curl -sL " + url + " 2>/dev/null | grep -iE " + chr(39) + "api_key|secret|password|token|midtrans|xendit|doku|dana|gopay|ovo|wallet|payment|deposit|withdraw|qris" + chr(39) + " | head -50")
+        results.append(("JS-SECRETS", r))
+        r = self._run("curl -sL " + url + " 2>/dev/null | grep -iE " + chr(39) + "src=.*\.js" + chr(39) + " | head -20")
+        results.append(("JS-URLS", r))
+        return results
+
+    def gambling_detect(self, url):
+        results = []
+        self.log.info(f"Gambling detection -> {url}")
+        gambling_kw = 'slot|casino|bet|judi|togel|taruhan|poker|domino|roulette|blackjack|baccarat|deposit|withdraw|jackpot|bonus|promosi|rtp|wa.me|t.me|pragmatic|pgsoft|habanero|sbobet|cmd368'
+        r = self._run("curl -sL " + url + " 2>/dev/null | grep -oiE '" + gambling_kw + "' | sort | uniq -c | sort -rn")
+        results.append(('GAMBLING-KEYWORDS', r))
+        r = self._run("curl -sL " + url + " 2>/dev/null | grep -oiE '(wa\.me|t\.me|crisp|tawk|livechat)' | sort | uniq -c")
+        results.append(('CHAT-WIDGETS', r))
+        r = self._run("curl -sL " + url + " 2>/dev/null | grep -oiE '\+?62[0-9]{8,13}' | sort -u")
+        results.append(('PHONE-NUMBERS', r))
+        r = self._run("curl -sL " + url + " 2>/dev/null | grep -oiE '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' | sort -u")
+        results.append(('EMAILS', r))
+        r = self._run("curl -sI " + url + " | grep -i 'cf-ray\|cloudflare'")
+        results.append(('CLOUDFLARE', r))
+        return results
+
+    def ssl_analyze(self, host):
+        results = []
+        self.log.info(f"SSL/TLS analysis -> {host}")
+        if 'sslscan' in self.tools:
+            r = self._run(f"{self.tools['sslscan']} --no-colour {host}")
+            results.append(('SSLSCAN', r))
+        if 'sslyze' in self.tools:
+            r = self._run(f"{self.tools['sslyze']} --regular {host}", 120)
+            results.append(('SSLYZE', r))
+        if 'tlsx' in self.tools:
+            r = self._run(f"{self.tools['tlsx']} -u {host} -j")
+            results.append(('TLSX', r))
+        domain = host.replace('http://','').replace('https://','').split('/')[0]
+        r = self._run("curl -s 'https://crt.sh/?q=" + domain + "&output=json' 2>/dev/null | head -100")
+        results.append(('CT-LOGS', r))
+        return results
+
     def search_exploit(self, query):
         if 'searchsploit' in self.tools:
-            self.log.info(f"Exploit search → {query}")
+            self.log.info(f"Exploit search -> {query}")
             return self._run(f"{self.tools['searchsploit']} {query}")
         return "[SKIP] searchsploit not found"
 
-    # --- SSL/TLS ---
-    def ssl_analyze(self, host):
+    def passive_recon(self, domain):
         results = []
-        self.log.info(f"SSL/TLS analysis → {host}")
-        if 'sslscan' in self.tools:
-            r = self._run(f"{self.tools['sslscan']} {host}")
-            results.append(('SSLSCAN', r))
-        if 'sslyze' in self.tools:
-            r = self._run(f"{self.tools['sslyze']} --regular {host}")
-            results.append(('SSLYZE', r))
+        self.log.info(f"Passive recon -> {domain}")
+        if shutil.which('whois'):
+            r = self._run(f"whois {domain}")
+            results.append(('WHOIS', r))
+        for rtype in ['A','AAAA','MX','NS','TXT','SOA']:
+            r = self._run(f"dig {rtype} +short {domain}")
+            if r.strip(): results.append((f'DNS-{rtype}', r))
+        r = self._run("curl -s 'https://crt.sh/?q=%25." + domain + "&output=json' 2>/dev/null | head -100")
+        results.append(('CRT-SH', r))
+        r = self._run("curl -s 'http://web.archive.org/cdx/search/cdx?url=" + domain + "/*&output=text&fl=original&limit=50' 2>/dev/null")
+        results.append(('WAYBACK', r))
+        r = self._run("curl -s -X POST 'https://urlhaus-api.abuse.ch/v1/host/' -d 'host=" + domain + "' 2>/dev/null")
+        results.append(('URLHAUS', r))
+        if 'shodan' in self.tools:
+            r = self._run(f"{self.tools['shodan']} host {domain}")
+            results.append(('SHODAN', r))
         return results
 
 kali = KaliTools(log)
