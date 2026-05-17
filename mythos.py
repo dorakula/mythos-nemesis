@@ -44,7 +44,7 @@ from flask_socketio import SocketIO, emit
 # ============================================================
 # CONFIGURATION
 # ============================================================
-VERSION = "2.1.0"
+VERSION = "3.0.0"
 AUTHOR = "ibnu qory nur fikri / Dorakula"
 DEFAULT_PORT = 5000
 BLOCKED_PORT = 8080  # MCP Bridge — DO NOT USE
@@ -1311,46 +1311,252 @@ paydetect = None  # Initialized after classifier
 # HEXSTRIKE-AI BRIDGE
 # ============================================================
 class HexStrikeBridge:
-    """Bridge to HexStrike-AI v6.0 API on port 8888"""
+    """Bridge to HexStrike-AI v6.0 API — Full Integration with 150+ Tools"""
+
+    HEXSTRIKE_PATH = "/home/kali/hexstrike-ai"
+    HEXSTRIKE_VENV = "/home/kali/hexstrike-ai/hexstrike-env"
+    HEXSTRIKE_SERVER = "/home/kali/hexstrike-ai/hexstrike_server.py"
+    STARTUP_TIMEOUT = 30
+
+    TOOL_CATEGORIES = {
+        "essential": ["nmap", "gobuster", "dirb", "nikto", "sqlmap", "hydra", "john", "hashcat"],
+        "network": ["rustscan", "masscan", "autorecon", "nbtscan", "arp-scan", "responder",
+                     "netexec", "enum4linux-ng", "rpcclient", "enum4linux", "nmap-advanced"],
+        "web_security": ["ffuf", "feroxbuster", "dirsearch", "dotdotpwn", "xsser", "wfuzz",
+                         "gau", "waybackurls", "arjun", "paramspider", "x8", "jaeles", "dalfox",
+                         "httpx", "wafw00f", "katana", "hakrawler", "nuclei", "wpscan"],
+        "vuln_scanning": ["nuclei", "wpscan", "jwt_analyzer", "api_fuzzer", "graphql_scanner",
+                          "api_schema_analyzer"],
+        "password": ["hydra", "john", "hashcat", "medusa", "patator", "hash-identifier", "ophcrack"],
+        "binary": ["gdb", "radare2", "binwalk", "ropgadget", "checksec", "objdump",
+                    "ghidra", "pwntools", "one-gadget", "ropper", "angr", "libc-database",
+                    "pwninit", "gdb-peda", "xxd", "strings"],
+        "forensics": ["volatility", "volatility3", "foremost", "steghide", "exiftool",
+                       "hashpump", "strings", "xxd", "file"],
+        "cloud": ["prowler", "scout-suite", "trivy", "kube-hunter", "kube-bench",
+                  "docker-bench-security", "checkov", "terrascan", "falco", "clair",
+                  "cloudmapper", "pacu"],
+        "osint": ["amass", "subfinder", "fierce", "dnsenum", "theharvester", "sherlock",
+                  "social-analyzer", "recon-ng", "spiderfoot", "shodan-cli", "censys-cli"],
+        "exploitation": ["metasploit", "msfvenom", "searchsploit", "exploit-db"],
+        "api_tools": ["httpx", "anew", "qsreplace", "uro", "api_fuzzer", "graphql_scanner",
+                       "jwt_analyzer", "api_schema_analyzer"],
+        "wireless": ["kismet", "wireshark", "tshark", "tcpdump"],
+        "smb": ["smbmap", "enum4linux", "enum4linux-ng", "rpcclient", "netexec"],
+        "scanning": ["nmap", "rustscan", "masscan", "nmap-advanced", "autorecon", "httpx"],
+        "directory": ["gobuster", "dirb", "dirsearch", "ffuf", "feroxbuster"],
+        "xss": ["xsser", "dalfox", "wfuzz"],
+        "sqli": ["sqlmap"],
+        "waf": ["wafw00f"],
+        "crawler": ["katana", "hakrawler", "gau", "waybackurls", "paramspider", "arjun"],
+    }
+
+    TOOL_ENDPOINTS = {
+        "nmap": "/api/tools/nmap", "gobuster": "/api/tools/gobuster", "nuclei": "/api/tools/nuclei",
+        "prowler": "/api/tools/prowler", "trivy": "/api/tools/trivy", "scout-suite": "/api/tools/scout-suite",
+        "cloudmapper": "/api/tools/cloudmapper", "pacu": "/api/tools/pacu",
+        "kube-hunter": "/api/tools/kube-hunter", "kube-bench": "/api/tools/kube-bench",
+        "docker-bench-security": "/api/tools/docker-bench-security", "clair": "/api/tools/clair",
+        "falco": "/api/tools/falco", "checkov": "/api/tools/checkov", "terrascan": "/api/tools/terrascan",
+        "dirb": "/api/tools/dirb", "nikto": "/api/tools/nikto", "sqlmap": "/api/tools/sqlmap",
+        "metasploit": "/api/tools/metasploit", "hydra": "/api/tools/hydra", "john": "/api/tools/john",
+        "hashcat": "/api/tools/hashcat", "wpscan": "/api/tools/wpscan",
+        "enum4linux": "/api/tools/enum4linux", "ffuf": "/api/tools/ffuf",
+        "netexec": "/api/tools/netexec", "amass": "/api/tools/amass",
+        "subfinder": "/api/tools/subfinder", "smbmap": "/api/tools/smbmap",
+        "rustscan": "/api/tools/rustscan", "masscan": "/api/tools/masscan",
+        "nmap-advanced": "/api/tools/nmap-advanced", "autorecon": "/api/tools/autorecon",
+        "enum4linux-ng": "/api/tools/enum4linux-ng", "rpcclient": "/api/tools/rpcclient",
+        "nbtscan": "/api/tools/nbtscan", "arp-scan": "/api/tools/arp-scan",
+        "responder": "/api/tools/responder", "volatility": "/api/tools/volatility",
+        "msfvenom": "/api/tools/msfvenom", "gdb": "/api/tools/gdb", "radare2": "/api/tools/radare2",
+        "binwalk": "/api/tools/binwalk", "ropgadget": "/api/tools/ropgadget",
+        "checksec": "/api/tools/checksec", "xxd": "/api/tools/xxd", "strings": "/api/tools/strings",
+        "objdump": "/api/tools/objdump", "ghidra": "/api/tools/ghidra", "pwntools": "/api/tools/pwntools",
+        "one-gadget": "/api/tools/one-gadget", "libc-database": "/api/tools/libc-database",
+        "gdb-peda": "/api/tools/gdb-peda", "angr": "/api/tools/angr", "ropper": "/api/tools/ropper",
+        "pwninit": "/api/tools/pwninit", "feroxbuster": "/api/tools/feroxbuster",
+        "dotdotpwn": "/api/tools/dotdotpwn", "xsser": "/api/tools/xsser", "wfuzz": "/api/tools/wfuzz",
+        "dirsearch": "/api/tools/dirsearch", "katana": "/api/tools/katana", "gau": "/api/tools/gau",
+        "waybackurls": "/api/tools/waybackurls", "arjun": "/api/tools/arjun",
+        "paramspider": "/api/tools/paramspider", "x8": "/api/tools/x8", "jaeles": "/api/tools/jaeles",
+        "dalfox": "/api/tools/dalfox", "httpx": "/api/tools/httpx", "anew": "/api/tools/anew",
+        "qsreplace": "/api/tools/qsreplace", "uro": "/api/tools/uro",
+        "wafw00f": "/api/tools/wafw00f", "fierce": "/api/tools/fierce", "dnsenum": "/api/tools/dnsenum",
+        "volatility3": "/api/tools/volatility3", "foremost": "/api/tools/foremost",
+        "steghide": "/api/tools/steghide", "exiftool": "/api/tools/exiftool",
+        "hashpump": "/api/tools/hashpump", "hakrawler": "/api/tools/hakrawler",
+        "api_fuzzer": "/api/tools/api_fuzzer", "graphql_scanner": "/api/tools/graphql_scanner",
+        "jwt_analyzer": "/api/tools/jwt_analyzer", "api_schema_analyzer": "/api/tools/api_schema_analyzer",
+    }
 
     def __init__(self, logger):
         self.log = logger
         self.api_url = HEXSTRIKE_API
+        self._server_process = None
+        self._started = False
+
+    def start_server(self):
+        """Auto-start HexStrike-AI server in background"""
+        if self.is_available():
+            self.log.info("HexStrike-AI already running")
+            self._started = True
+            return True
+        if not os.path.exists(self.HEXSTRIKE_SERVER):
+            self.log.warning(f"HexStrike-AI not found at {self.HEXSTRIKE_SERVER}")
+            return False
+        self.log.info("Starting HexStrike-AI v6.0 server...")
+        try:
+            venv_python = os.path.join(self.HEXSTRIKE_VENV, "bin", "python3")
+            if not os.path.exists(venv_python):
+                venv_python = "/usr/bin/python3"
+            self._server_process = subprocess.Popen(
+                [venv_python, self.HEXSTRIKE_SERVER],
+                cwd=self.HEXSTRIKE_PATH,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env={**os.environ, "HEXSTRIKE_PORT": "8888", "HEXSTRIKE_HOST": "127.0.0.1"}
+            )
+            for i in range(self.STARTUP_TIMEOUT):
+                time.sleep(1)
+                if self.is_available():
+                    self.log.info(f"HexStrike-AI started successfully (took {i+1}s)")
+                    self._started = True
+                    return True
+                if self._server_process.poll() is not None:
+                    self.log.error("HexStrike-AI server crashed during startup")
+                    return False
+            self.log.warning("HexStrike-AI startup timed out")
+            return False
+        except Exception as e:
+            self.log.error(f"Failed to start HexStrike-AI: {e}")
+            return False
+
+    def stop_server(self):
+        """Stop HexStrike-AI server"""
+        if self._server_process and self._server_process.poll() is None:
+            self._server_process.terminate()
+            self._server_process.wait(timeout=5)
+            self.log.info("HexStrike-AI server stopped")
+        else:
+            try:
+                subprocess.run(["pkill", "-f", "hexstrike_server.py"], capture_output=True)
+            except:
+                pass
 
     def is_available(self):
         try:
             import urllib.request
-            req = urllib.request.urlopen(f"{self.api_url}/", timeout=3)
+            req = urllib.request.urlopen(f"{self.api_url}/health", timeout=3)
             return req.status == 200
         except Exception:
             return False
 
-    def _request(self, endpoint, data=None):
+    def get_health(self):
+        return self._request("/health")
+
+    def get_tools_status(self):
+        health = self.get_health()
+        if health:
+            return {
+                "tools_status": health.get("tools_status", {}),
+                "category_stats": health.get("category_stats", {}),
+                "total_available": health.get("total_tools_available", 0),
+                "total_count": health.get("total_tools_count", 0),
+                "version": health.get("version", "unknown")
+            }
+        return None
+
+    def _request(self, endpoint, data=None, timeout=60):
         try:
             import urllib.request
             url = f"{self.api_url}{endpoint}"
             if data:
                 req = urllib.request.Request(url, data=json.dumps(data).encode(),
-                                             headers={'Content-Type': 'application/json'})
-                resp = urllib.request.urlopen(req, timeout=30)
+                                             headers={Content-Type: application/json})
+                resp = urllib.request.urlopen(req, timeout=timeout)
             else:
-                resp = urllib.request.urlopen(url, timeout=30)
+                resp = urllib.request.urlopen(url, timeout=timeout)
             return json.loads(resp.read().decode())
         except Exception as e:
             self.log.warning(f"HexStrike API error: {e}")
             return None
 
+    def run_tool(self, tool_name, target, options=None):
+        endpoint = self.TOOL_ENDPOINTS.get(tool_name)
+        if not endpoint:
+            self.log.warning(f"Unknown HexStrike tool: {tool_name}")
+            return {"error": f"Unknown tool: {tool_name}"}
+        payload = {"target": target}
+        if options:
+            payload.update(options)
+        self.log.info(f"HexStrike tool -> {tool_name} | target: {target}")
+        return self._request(endpoint, payload, timeout=120)
+
+    def proxy_request(self, endpoint, data=None, timeout=120):
+        return self._request(endpoint, data, timeout)
+
     def analyze_target(self, target):
-        self.log.info(f"HexStrike-AI analysis → {target}")
-        return self._request("/api/analyze", {"target": target})
+        self.log.info(f"HexStrike-AI analysis -> {target}")
+        return self._request("/api/intelligence/analyze-target", {"target": target})
+
+    def smart_scan(self, target, objective="comprehensive"):
+        self.log.info(f"HexStrike smart scan -> {target}")
+        return self._request("/api/intelligence/smart-scan", {"target": target, "objective": objective})
+
+    def select_optimal_tools(self, target, objective="comprehensive"):
+        self.log.info(f"HexStrike tool selection -> {target}")
+        return self._request("/api/intelligence/select-tools", {"target": target, "objective": objective})
 
     def generate_report(self, scan_id):
-        self.log.info(f"HexStrike report generation → {scan_id}")
-        return self._request("/api/report", {"scan_id": scan_id})
+        self.log.info(f"HexStrike report generation -> {scan_id}")
+        return self._request("/api/visual/summary-report", {"scan_id": scan_id})
 
     def get_recommendations(self, target, intel_data):
-        self.log.info(f"HexStrike recommendations → {target}")
-        return self._request("/api/recommend", {"target": target, "intel": intel_data})
+        self.log.info(f"HexStrike recommendations -> {target}")
+        return self._request("/api/intelligence/optimize-parameters", {"target": target, "data": intel_data})
+
+    def bugbounty_recon(self, target):
+        self.log.info(f"HexStrike bug bounty recon -> {target}")
+        return self._request("/api/bugbounty/reconnaissance-workflow", {"target": target})
+
+    def bugbounty_vuln_hunt(self, target):
+        self.log.info(f"HexStrike vuln hunting -> {target}")
+        return self._request("/api/bugbounty/vulnerability-hunting-workflow", {"target": target})
+
+    def bugbounty_osint(self, target):
+        self.log.info(f"HexStrike OSINT workflow -> {target}")
+        return self._request("/api/bugbounty/osint-workflow", {"target": target})
+
+    def bugbounty_full_assessment(self, target):
+        self.log.info(f"HexStrike comprehensive assessment -> {target}")
+        return self._request("/api/bugbounty/comprehensive-assessment", {"target": target})
+
+    def cve_monitor(self, keywords, severity="high"):
+        self.log.info(f"HexStrike CVE monitor -> {keywords}")
+        return self._request("/api/vuln-intel/cve-monitor", {"keywords": keywords, "severity": severity})
+
+    def exploit_generate(self, cve_id, target_info):
+        self.log.info(f"HexStrike exploit gen -> {cve_id}")
+        return self._request("/api/vuln-intel/exploit-generate", {"cve_id": cve_id, "target_info": target_info})
+
+    def technology_detection(self, target):
+        self.log.info(f"HexStrike tech detection -> {target}")
+        return self._request("/api/intelligence/technology-detection", {"target": target})
+
+    def get_all_tool_names(self):
+        seen = set()
+        result = []
+        for tools in self.TOOL_CATEGORIES.values():
+            for t in tools:
+                if t not in seen:
+                    seen.add(t)
+                    result.append(t)
+        return result
+
+    def get_category_names(self):
+        return list(self.TOOL_CATEGORIES.keys())
+
 
 hexstrike = HexStrikeBridge(log)
 
@@ -2626,6 +2832,106 @@ def handle_ip_quick_lookup(data):
 # ============================================================
 # HTTP ROUTES
 # ============================================================
+
+# ============================================================
+# HEXSTRIKE-AI SOCKETIO EVENTS
+# ============================================================
+
+@socketio.on("hexstrike_health")
+def hexstrike_health():
+    try:
+        health = hexstrike.get_health()
+        emit("hexstrike_health_result", {
+            "available": hexstrike.is_available(),
+            "health": health,
+            "tools": hexstrike.get_all_tool_names(),
+            "categories": hexstrike.TOOL_CATEGORIES
+        })
+    except Exception as e:
+        emit("hexstrike_health_result", {"available": False, "error": str(e)})
+
+@socketio.on("hexstrike_run_tool")
+def hexstrike_run_tool(data):
+    tool = data.get("tool", "")
+    target = data.get("target", "")
+    options = data.get("options", {})
+    if not tool or not target:
+        emit("hexstrike_tool_result", {"error": "Tool and target required"})
+        return
+    try:
+        log.info(f"[HexStrike] Running {tool} -> {target}")
+        result = hexstrike.run_tool(tool, target, options)
+        emit("hexstrike_tool_result", {
+            "tool": tool, "target": target, "result": result, "status": "done"
+        })
+    except Exception as e:
+        emit("hexstrike_tool_result", {
+            "tool": tool, "target": target, "error": str(e), "status": "error"
+        })
+
+@socketio.on("hexstrike_smart_scan")
+def hexstrike_smart_scan_evt(data):
+    target = data.get("target", "")
+    objective = data.get("objective", "comprehensive")
+    if not target:
+        emit("hexstrike_scan_result", {"error": "Target required"})
+        return
+    try:
+        log.info(f"[HexStrike] Smart scan -> {target}")
+        result = hexstrike.smart_scan(target, objective)
+        emit("hexstrike_scan_result", {
+            "target": target, "result": result, "status": "done"
+        })
+    except Exception as e:
+        emit("hexstrike_scan_result", {"error": str(e), "status": "error"})
+
+@socketio.on("hexstrike_bugbounty")
+def hexstrike_bugbounty_evt(data):
+    target = data.get("target", "")
+    workflow = data.get("workflow", "recon")
+    if not target:
+        emit("hexstrike_bugbounty_result", {"error": "Target required"})
+        return
+    try:
+        log.info(f"[HexStrike] BugBounty {workflow} -> {target}")
+        if workflow == "recon":
+            result = hexstrike.bugbounty_recon(target)
+        elif workflow == "vuln_hunt":
+            result = hexstrike.bugbounty_vuln_hunt(target)
+        elif workflow == "osint":
+            result = hexstrike.bugbounty_osint(target)
+        else:
+            result = hexstrike.bugbounty_full_assessment(target)
+        emit("hexstrike_bugbounty_result", {
+            "target": target, "workflow": workflow, "result": result, "status": "done"
+        })
+    except Exception as e:
+        emit("hexstrike_bugbounty_result", {"error": str(e), "status": "error"})
+
+@socketio.on("hexstrike_intelligence")
+def hexstrike_intelligence_evt(data):
+    target = data.get("target", "")
+    analysis_type = data.get("type", "analyze")
+    if not target:
+        emit("hexstrike_intel_result", {"error": "Target required"})
+        return
+    try:
+        log.info(f"[HexStrike] Intelligence {analysis_type} -> {target}")
+        if analysis_type == "analyze":
+            result = hexstrike.analyze_target(target)
+        elif analysis_type == "tech_detect":
+            result = hexstrike.technology_detection(target)
+        elif analysis_type == "tools_select":
+            result = hexstrike.select_optimal_tools(target)
+        else:
+            result = hexstrike.analyze_target(target)
+        emit("hexstrike_intel_result", {
+            "target": target, "type": analysis_type, "result": result, "status": "done"
+        })
+    except Exception as e:
+        emit("hexstrike_intel_result", {"error": str(e), "status": "error"})
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -2815,6 +3121,45 @@ def print_banner():
   {G}●{R} MCP Bridge:    {B}Port {BLOCKED_PORT} BLOCKED ✓{R}
 """)
 
+
+@app.route("/api/hexstrike/status")
+def api_hexstrike_status():
+    health = hexstrike.get_health() if hexstrike.is_available() else None
+    return jsonify({
+        "available": hexstrike.is_available(),
+        "api_url": HEXSTRIKE_API,
+        "started": hexstrike._started,
+        "health": health,
+        "total_tools": len(hexstrike.get_all_tool_names()),
+        "categories": len(hexstrike.TOOL_CATEGORIES)
+    })
+
+@app.route("/api/hexstrike/tools")
+def api_hexstrike_tools():
+    return jsonify({
+        "categories": hexstrike.TOOL_CATEGORIES,
+        "tool_endpoints": hexstrike.TOOL_ENDPOINTS,
+        "all_tools": hexstrike.get_all_tool_names()
+    })
+
+@app.route("/api/hexstrike/run", methods=["POST"])
+def api_hexstrike_run():
+    data = request.json or {}
+    tool = data.get("tool", "")
+    target = data.get("target", "")
+    options = data.get("options", {})
+    if not tool or not target:
+        return jsonify({"error": "tool and target required"}), 400
+    result = hexstrike.run_tool(tool, target, options)
+    return jsonify(result or {"error": "HexStrike unavailable"})
+
+@app.route("/api/hexstrike/proxy/<path:endpoint>", methods=["GET", "POST"])
+def api_hexstrike_proxy(endpoint):
+    data = request.json if request.method == "POST" else None
+    result = hexstrike.proxy_request(f"/api/{endpoint}", data)
+    return jsonify(result or {"error": "HexStrike unavailable"})
+
+
 def main():
     port = DEFAULT_PORT
 
@@ -2848,9 +3193,20 @@ def main():
     print_banner()
     log.info(f"Starting MYTHOS NEMESIS on port {port}...")
 
+    # Auto-start HexStrike-AI v6.0
+    log.info("Initializing HexStrike-AI v6.0 engine...")
+    hs_thread = threading.Thread(target=hexstrike.start_server, daemon=True)
+    hs_thread.start()
+    time.sleep(3)
+    if hexstrike.is_available():
+        log.info("HexStrike-AI v6.0: ONLINE - 150+ tools ready")
+    else:
+        log.warning("HexStrike-AI: Starting in background (may take a few seconds)")
+
     # Register signal handler
     def shutdown(sig, frame):
         log.banner("Shutting down MYTHOS NEMESIS")
+        hexstrike.stop_server()
         sys.exit(0)
 
     signal.signal(signal.SIGINT, shutdown)

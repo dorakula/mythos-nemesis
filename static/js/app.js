@@ -776,3 +776,185 @@
 
 
 })();
+// ============================================================
+// HEXSTRIKE-AI v6.0 Handler
+// ============================================================
+
+const HexStrike = {
+    tools: [],
+    categories: {},
+
+    init() {
+        // SocketIO events
+        socket.on("hexstrike_health_result", (data) => {
+            this.updateStatus(data);
+        });
+        socket.on("hexstrike_tool_result", (data) => {
+            this.appendOutput(data);
+        });
+        socket.on("hexstrike_scan_result", (data) => {
+            this.appendOutput(data);
+        });
+        socket.on("hexstrike_bugbounty_result", (data) => {
+            this.appendOutput(data);
+        });
+        socket.on("hexstrike_intel_result", (data) => {
+            this.appendOutput(data);
+        });
+
+        // Button handlers
+        document.getElementById("btnRefreshHS").addEventListener("click", () => this.checkHealth());
+        document.getElementById("btnRunHSTool").addEventListener("click", () => this.runTool());
+        document.getElementById("btnClearHSOutput").addEventListener("click", () => this.clearOutput());
+
+        // Quick action buttons
+        document.querySelectorAll("[data-hs-action]").forEach(btn => {
+            btn.addEventListener("click", () => this.quickAction(btn.dataset.hsAction));
+        });
+
+        // Initial check
+        this.checkHealth();
+        this.loadTools();
+    },
+
+    checkHealth() {
+        socket.emit("hexstrike_health");
+        fetch("/api/hexstrike/status")
+            .then(r => r.json())
+            .then(data => {
+                const badge = document.getElementById("hexstrikeBadge");
+                const statusEl = document.getElementById("hexstrikeStatus");
+                if (data.available) {
+                    badge.textContent = "ONLINE";
+                    badge.className = "badge badge-success";
+                    if (statusEl) {
+                        statusEl.querySelector(".status-dot").className = "status-dot online";
+                        statusEl.querySelector("span:last-child").textContent = "HexStrike: Online";
+                    }
+                } else {
+                    badge.textContent = "OFFLINE";
+                    badge.className = "badge badge-danger";
+                    if (statusEl) {
+                        statusEl.querySelector(".status-dot").className = "status-dot offline";
+                        statusEl.querySelector("span:last-child").textContent = "HexStrike: Offline";
+                    }
+                }
+                document.getElementById("hsToolCount").textContent = data.total_tools || "--";
+                document.getElementById("hsCatCount").textContent = data.categories || "--";
+                if (data.health) {
+                    document.getElementById("hsAvailCount").textContent = data.health.total_tools_available || "--";
+                    document.getElementById("hsVersion").textContent = data.health.version || "--";
+                }
+            })
+            .catch(() => {
+                document.getElementById("hexstrikeBadge").textContent = "ERROR";
+                document.getElementById("hexstrikeBadge").className = "badge badge-danger";
+            });
+    },
+
+    loadTools() {
+        fetch("/api/hexstrike/tools")
+            .then(r => r.json())
+            .then(data => {
+                this.tools = data.all_tools || [];
+                this.categories = data.categories || {};
+                this.populateToolSelect();
+                this.renderCategories();
+            })
+            .catch(() => {});
+    },
+
+    populateToolSelect() {
+        const select = document.getElementById("hsToolSelect");
+        select.innerHTML = "<option value=\"\">Select Tool...</option>";
+        this.tools.forEach(tool => {
+            const opt = document.createElement("option");
+            opt.value = tool;
+            opt.textContent = tool;
+            select.appendChild(opt);
+        });
+    },
+
+    renderCategories() {
+        const container = document.getElementById("hsCategories");
+        container.innerHTML = "";
+        for (const [cat, tools] of Object.entries(this.categories)) {
+            const div = document.createElement("div");
+            div.className = "hs-category";
+            div.innerHTML = `
+                <h5>${cat} <span class="badge">${tools.length}</span></h5>
+                <div class="hs-tool-list">${tools.map(t => `<span class="hs-tool-tag" data-tool="${t}">${t}</span>`).join("")}</div>
+            `;
+            container.appendChild(div);
+        }
+        // Click handler for tool tags
+        container.querySelectorAll(".hs-tool-tag").forEach(tag => {
+            tag.addEventListener("click", () => {
+                document.getElementById("hsToolSelect").value = tag.dataset.tool;
+                document.getElementById("hsTargetInput").focus();
+            });
+        });
+    },
+
+    runTool() {
+        const tool = document.getElementById("hsToolSelect").value;
+        const target = document.getElementById("hsTargetInput").value.trim();
+        const optionsStr = document.getElementById("hsOptionsInput").value.trim();
+        if (!tool || !target) {
+            this.appendOutput({error: "Tool and target are required"});
+            return;
+        }
+        let options = {};
+        if (optionsStr) {
+            try { options = JSON.parse(optionsStr); } catch(e) { options = {extra: optionsStr}; }
+        }
+        this.appendOutput({system: `Running ${tool} -> ${target}...`});
+        socket.emit("hexstrike_run_tool", {tool, target, options});
+    },
+
+    quickAction(action) {
+        const target = document.getElementById("hsTargetInput").value.trim();
+        if (!target) {
+            this.appendOutput({error: "Enter a target first"});
+            document.getElementById("hsTargetInput").focus();
+            return;
+        }
+        if (["analyze","smart_scan","tech_detect","tools_select"].includes(action)) {
+            const type = action === "smart_scan" ? "smart_scan" : action;
+            if (action === "smart_scan") {
+                socket.emit("hexstrike_smart_scan", {target, objective: "comprehensive"});
+            } else {
+                socket.emit("hexstrike_intelligence", {target, type: action});
+            }
+        } else {
+            socket.emit("hexstrike_bugbounty", {target, workflow: action});
+        }
+        this.appendOutput({system: `Quick action: ${action} -> ${target}...`});
+    },
+
+    appendOutput(data) {
+        const output = document.getElementById("hsOutput");
+        if (!output) return;
+        const line = document.createElement("div");
+        if (data.error) {
+            line.className = "terminal-line error";
+            line.textContent = `[ERROR] ${data.error}`;
+        } else if (data.system) {
+            line.className = "terminal-line system";
+            line.textContent = data.system;
+        } else if (data.result) {
+            line.className = "terminal-line success";
+            line.textContent = typeof data.result === "string" ? data.result : JSON.stringify(data.result, null, 2);
+        } else {
+            line.className = "terminal-line";
+            line.textContent = JSON.stringify(data, null, 2);
+        }
+        output.appendChild(line);
+        output.scrollTop = output.scrollHeight;
+    },
+
+    clearOutput() {
+        document.getElementById("hsOutput").innerHTML = "<div class=\"terminal-line system\">Output cleared</div>";
+    }
+};
+HexStrike.init();
